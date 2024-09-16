@@ -1,2 +1,233 @@
-"https://colab.research.google.com/drive/1Ptfsofg_L2WIdK8gFYs2ljcM2dPf9zl1?usp=sharing"
-"This is my code for the Rotation Curve of the Milky May."
+https://colab.research.google.com/drive/1Ptfsofg_L2WIdK8gFYs2ljcM2dPf9zl1?usp=sharing
+This is my code for the Rotation Curve of the Milky May in Google Colab Notebook.
+
+
+import astropy.constants as const # importing python package to get astronomical constants, for example Gravitaitonal Constant
+import astropy.units as u # importing python package to call units. ex. solar mass unit
+import numpy as np # importing python package to call mathematical functions. Need to do math on the defined variables
+import matplotlib.pyplot as plt # importing python package to call matplotlib. Need to plot graphs
+
+
+def CalculatingOrbitalVelocity(M, R):
+  """
+  GENERAL FUNCTION WITH INPUTS OF MASS AND RADIUS, AND OUTPUTS VELOCITY:
+
+  M, TOTAL MASS ENCLOSED IN ORBIT OF CENTRAL OBJECT
+  R, RADIUS OF OBJECT'S ORBIT
+
+  Outputs:
+
+  orbitalVelocity, ORBITAL VELOCITY OF SATELLITE
+
+  """
+  orbitalVelocity = np.sqrt((const.G * M) / R) # uses V = sqrt(GM/R)
+  return orbitalVelocity
+
+def CalculatingEnclosedMass_Sphere(D,R,R_Max,M_Max):
+  """
+  GENERAL FUNCTION WITH INPUTS OF DENSITY, RADIUS, MAXIMUM RADIUS, AND MAXIMUM MASS, AND OUTPUTS MASS
+
+  Inputs:
+
+  D, DENSITY OF REGION TO BE ENCLOSED
+  R, OBJECT'S ORBITAL RADIUS
+  R_Max, MAXIMUM RADIUS OF REGION TO BE ENCLOSED
+  M_Max, MAXIMUM MASS OF REGION TO BE ENCLOSED
+
+  Outputs:
+
+  M, ENCLOSED MASS IN ORBIT
+  """
+  if R < R_Max:
+    M = D * 4/3 * np.pi * R**3 # finds mass as a function of radius and density. Mass = Density * Spherical Volume.
+    return M # gives only mass enclosed in object's orbit
+  else:
+    M = M_Max # truncates mass to maximum mass when orbit is larger than region
+    return M # just gives total mass of region instead of infinitely scaling mass
+
+def CalculatingEnclosedMass_flat(D,R,R_Max,M_Max):
+  """
+  GENERAL FUNCTION WITH INPUTS OF DENSITY, RADIUS, MAXIMUM RADIUS, AND MAXIMUM MASS. OUTPUTS MASS
+
+  Inputs:
+
+  D, DENSITY OF REGION TO BE ENCLOSED
+  R, OBJECT'S ORBITAL RADIUS
+  R_Max, MAXIMUM RADIUS OF REGION TO BE ENCLOSED
+  M_Max, MAXIMUM MASS OF REGION TO BE ENCLOSED
+
+  Outputs:
+
+  M, ENCLOSED MASS IN ORBIT
+  """
+  if R < R_Max:
+    M = D * np.pi * R**2 # finds mass as a function of radius and density. Mass = Area Density * Area in terms of R
+    return M # gives only mass enclosed in object's orbit
+  else:
+    M = M_Max # truncates mass to maximum mass when orbit is larger than region
+    return M # just gives total mass of region instead of infinitely scaling mass
+
+
+M_CMBH = 4.297E6 * u.solMass # starting with mass of milky way's central massive black hole as M_CMBH. Assuming point mass
+M_Bulge = 1.5E10 * u.solMass # setting mass of bulge in solar masses as M_Bulge. Assuming bulge is a point mass
+R_MilkyWayArray = np.arange(1,35,0.1)*u.kpc # creating array of orbital radii from 1-35 kpc with increments of 0.1 kpc
+M_total = M_CMBH + M_Bulge # calculating total mass of galaxy with just black hole and bulge
+Vel_MilkyWayArray = CalculatingOrbitalVelocity(M_total, R_MilkyWayArray) # calculating array of galactic orbital velocities
+
+plt.plot(R_MilkyWayArray, Vel_MilkyWayArray.to(u.km/u.s), color='purple', linestyle='-') # plotting velocity vs. orbital radius
+plt.xlabel("Orbital Radius (Kiloparsecs)") # x axis label
+plt.ylabel("Orbital Velocity (km/s)") # y axis label
+plt.title("Rotation Curve (CMBH[PM] + Bulge[PM])") # title of plot
+plt.ylim(0,350) # setting y limits from 0 to 350 km/s
+plt.grid() # adding grid
+
+
+M_Max_disk = 1E11 * u.solMass # defining total mass of disk in solar masses
+R_Max_disk = 10*u.kpc # defining disk radius in kpc
+A_disk = np.pi * R_Max_disk**2 # calculating area of disk in kpc2. ASSUMING DISK IS FLAT AND UNIFORM
+D_disk = M_Max_disk / A_disk # calculating area density of disk in solmass/kpc2
+M_disk_enclosed = np.zeros(len(R_MilkyWayArray)) * u.solMass # creating array to store enclosed mass of disk for each orbital radius
+print(M_disk_enclosed)
+
+"""
+CREATING LOOP TO CALCULATE ENCLOSED MASS FOR EACH ORBITAL RADIUS.
+CALLS FUNCTION FOR VARYING ORBITAL RADII WITH CONSTANT INPUTS OF THE ABOVE VALUES
+"""
+
+for i in np.arange(len(R_MilkyWayArray)):
+  M_disk_enclosed[i] = CalculatingEnclosedMass_flat(D_disk, R_MilkyWayArray[i],R_Max_disk,M_Max_disk)
+
+print(M_disk_enclosed) # printing values
+
+
+
+M_total = M_CMBH + M_Bulge + M_disk_enclosed # adding total mass of galaxy with black hole, bulge, and disk at each orbital radius
+Vel_MilkyWayArray = CalculatingOrbitalVelocity(M_total, R_MilkyWayArray) # calculating Orbital Velocities
+
+plt.plot(R_MilkyWayArray, Vel_MilkyWayArray.to(u.km/u.s), color='purple', linestyle='-') # plotting velocity vs. orbital radius
+plt.xlabel("Orbital Radius (Kiloparsecs)") # x axis label
+plt.ylabel("Orbital Velocity (km/s)") # y axis label
+plt.title("Rotation Curve (CMBH[PM] + Bulge[PM] + Disk[FD])") # title of plot
+plt.ylim(0,350) # setting y limits from 0 to 350 km/s
+plt.grid() # adding grid
+
+
+M_Max_halo = 1.5E12* u.solMass # defining total mass of halo in solar masses
+R_Max_halo = 45*u.kpc # defining halo radius
+Vol_halo = 4/3 * np.pi * R_Max_halo**3 # calculating volume of halo in kpc3. ASSUMING HALO IS A SPHERE OF UNIFORM DENSITY
+D_halo = M_Max_halo / Vol_halo # calculating density of halo in solmass/kpc3
+M_halo_enclosed = np.zeros(len(R_MilkyWayArray)) * u.solMass # creating array to store enclosed mass of halo for each orbital radius
+print(M_halo_enclosed) # printing to double check
+
+"""
+CREATING LOOP TO CALCULATE ENCLOSED MASS FOR EACH ORBITAL RADIUS.
+CALLS FUNCTION FOR VARYING ORBITAL RADII WITH CONSTANT INPUTS OF THE ABOVE VALUES
+"""
+
+for i in np.arange(len(R_MilkyWayArray)):
+  M_halo_enclosed[i] = CalculatingEnclosedMass_Sphere(D_halo, R_MilkyWayArray[i],R_Max_halo,M_Max_halo)
+
+print(M_halo_enclosed) #printing to double check
+
+
+M_total = M_CMBH + M_Bulge + M_disk_enclosed + M_halo_enclosed # adding total mass of galaxy with black hole, bulge, disk, and halo for each orbital radius
+Vel_MilkyWayArray = CalculatingOrbitalVelocity(M_total, R_MilkyWayArray) # calculating Orbital Velocities
+
+plt.plot(R_MilkyWayArray, Vel_MilkyWayArray.to(u.km/u.s), color='purple', linestyle='-') # plotting velocity vs. orbital radius
+plt.xlabel("Orbital Radius (Kiloparsecs)") # x axis label
+plt.ylabel("Orbital Velocity (km/s)") # y axis label
+plt.title("Rotation Curve (CMBH[PM] + Bulge[PM] + Disk[FD] + Halo[SP])") # title of plot
+plt.ylim(0,350) # setting y limits from 0 to 350 km/s
+plt.grid() # adding grid
+
+
+"""
+USING DATA FROM 2006 TO GIVE ERROR BARS ON GRAPH
+"""
+
+from google.colab import files
+uploaded = files.upload()
+
+import astropy.io.ascii
+tab = astropy.io.ascii.read("galaxy_rotation_2006.txt")
+
+plt.errorbar(tab["col2"], tab["col3"], yerr=tab["col4"], ecolor="black", color="black", fmt='o', label="Data")
+
+
+"""
+FINDING ORBITAL VELOCITIES FROM EACH COMPONENT
+"""
+
+Vel_CMBH = CalculatingOrbitalVelocity(M_CMBH, R_MilkyWayArray)
+Vel_bulge = CalculatingOrbitalVelocity(M_Bulge, R_MilkyWayArray)
+Vel_disk = CalculatingOrbitalVelocity(M_disk_enclosed, R_MilkyWayArray)
+Vel_halo = CalculatingOrbitalVelocity(M_halo_enclosed, R_MilkyWayArray)
+Vel_total = np.sqrt(Vel_CMBH**2 + Vel_bulge**2 + Vel_disk**2 + Vel_halo**2)
+
+"""
+PLOTTING EACH COMPONENET SEPARATELY
+"""
+
+plt.plot(R_MilkyWayArray, Vel_CMBH.to(u.km/u.s), color='red', linestyle='-', label= 'Black Hole')
+plt.plot(R_MilkyWayArray, Vel_bulge.to(u.km/u.s), color='blue', linestyle='-', label= 'Bulge')
+plt.plot(R_MilkyWayArray, Vel_disk.to(u.km/u.s), color='green', linestyle='-', label= 'Disk')
+plt.plot(R_MilkyWayArray, Vel_halo.to(u.km/u.s), color='orange', linestyle='-', label= 'Dark Matter Halo')
+
+"""
+PLOTTING TOTAL ORBITAL VELOCITY
+"""
+
+plt.plot(R_MilkyWayArray, Vel_total.to(u.km/u.s), color='purple', linestyle='-', label= 'Total') # plotting velocity vs. orbital radius for total
+
+"""
+ADDING ERROR BARS
+"""
+
+plt.errorbar(tab["col2"], tab["col3"], yerr=tab["col4"], ecolor="black", color="black", fmt='o', label="Data")
+
+"""
+FORMATING GRAPH
+"""
+
+plt.xlabel("Orbital Radius (Kiloparsecs)") # x axis label
+plt.ylabel("Orbital Velocity (km/s)") # y axis label
+plt.title("Final Rotation Curve") # title of plot
+plt.ylim(0,450) # setting y limits from 0 to 450 km/s
+plt.grid() # adding grid
+plt.legend() # adding legend
+
+
+"""
+
+NOW EXPLORING OTHER MODELS FOR THE DARK MATTER HALO.
+
+"""
+y = 55*np.log(R_MilkyWayArray/u.kpc)*u.km/u.s # Assuming velocity has a natrual log relation to orbital radius.
+plt.plot(R_MilkyWayArray,y) # plotting to see curve
+plt.ylim(0,350)
+
+
+Vel_CMBH = CalculatingOrbitalVelocity(M_CMBH, R_MilkyWayArray)
+Vel_bulge = CalculatingOrbitalVelocity(M_Bulge, R_MilkyWayArray)
+Vel_disk = CalculatingOrbitalVelocity(M_disk_enclosed, R_MilkyWayArray)
+
+"""
+REPEATED CALCULATIONS FROM PREVIOUS SECTION, REMOVING PREVIOUS HALO ESTIMATE
+"""
+
+Vel_total = np.sqrt(Vel_CMBH**2 + Vel_bulge**2 + Vel_disk**2 + y**2) # adding theorhetical velocity curve due to dark matter halo
+plt.plot(R_MilkyWayArray, Vel_total.to(u.km/u.s), color='purple', linestyle='-', label= 'Total') # plotting total
+plt.errorbar(tab["col2"], tab["col3"], yerr=tab["col4"], ecolor="black", color="black", fmt='o', label="Data") # adding error bars
+plt.ylim(0,450)
+
+
+logarithmic halo model appears more accurate.
+
+what does this mean?
+
+the equation for calculating velocity does not change, however, the distribution of dark matter must not not be uniform throughout the galaxy as previously assumed.
+
+orbital velocity due to the dark matter halo increases with radius, therefore
+more dark matter is found as the radius is farther from the center.
+
+mass density must increase with radius.
